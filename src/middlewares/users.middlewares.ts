@@ -15,9 +15,12 @@ export const loginValidator: RequestHandler = (req, res, next) => {
 
 export const registerValidator = validate(
   checkSchema({
+    name: {
+      notEmpty: true,
+      errorMessage: 'The name is not the blank!'
+    },
     email: {
       notEmpty: true,
-
       trim: true,
       matches: {
         options:
@@ -33,6 +36,7 @@ export const registerValidator = validate(
       custom: {
         options: async (value) => {
           const user = await usersService.checkEmailExist(value)
+
           if (user) {
             throw new Error('Email not exits')
           }
@@ -58,7 +62,8 @@ export const registerValidator = validate(
           minSymbols: 1
         },
         errorMessage: 'Password must be at 6 charactors long'
-      }
+      },
+      errorMessage: 'The password is not the blank!'
     },
     confirm_password: {
       notEmpty: true,
@@ -83,16 +88,17 @@ export const registerValidator = validate(
           if (value !== req.body.password) {
             throw Error('Password confirmation does not match password')
           }
-        }
-      }
-    },
-    date_of_birth: {
-      isISO8601: {
-        options: {
-          strict: true,
-          strictSeparator: true
+          return true
         }
       }
     }
+    // date_of_birth: {
+    //   isISO8601: {
+    //     options: {
+    //       strict: true,
+    //       strictSeparator: true
+    //     }
+    //   }
+    // }
   })
 )

@@ -10,6 +10,7 @@ export const validate = (validations: RunnableValidationChains<ValidationChain>)
     //   const result = await validation.run(req)
     //   if (result.errors.length) break
     // }
+
     await validations.run(req)
 
     const errors = validationResult(req)
