@@ -1,5 +1,6 @@
 import { createHash } from 'crypto'
-
+import { config } from 'dotenv'
+config()
 /**
  * Returns a SHA256 hash using SHA-2 for the given `content`.
  *
