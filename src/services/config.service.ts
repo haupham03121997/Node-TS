@@ -1,4 +1,4 @@
-import { MongoClient, Db, Collection } from 'mongodb'
+import { MongoClient, Db, Collection, ServerApiVersion } from 'mongodb'
 import { config } from 'dotenv'
 import User from '~/models/schemas/User.schema'
 import { RefreshToken } from '~/models/schemas/RefreshToken.scheme'
@@ -10,7 +10,13 @@ class DatabaseService {
   private client: MongoClient
   private db: Db
   constructor() {
-    this.client = new MongoClient(uri)
+    this.client = new MongoClient(uri, {
+      serverApi: {
+        version: ServerApiVersion.v1,
+        strict: true,
+        deprecationErrors: true
+      }
+    })
     this.db = this.client.db(process.env.DATABASE_NAME)
   }
 
@@ -19,7 +25,7 @@ class DatabaseService {
       await this.db.command({ ping: 1 })
       console.log('Pinged your deployment. You successfully connected to MongoDB!')
     } catch (error) {
-      console.log(error)
+      console.log('error', error)
       this.client.close()
       throw error
     }

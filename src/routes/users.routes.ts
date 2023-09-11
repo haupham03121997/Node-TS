@@ -6,5 +6,6 @@ const usersRouter = Router()
 
 usersRouter.post('/login', loginValidator, loginController)
 usersRouter.post('/register', registerValidator, registerController)
+usersRouter.post('/logout')
 
 export { usersRouter }

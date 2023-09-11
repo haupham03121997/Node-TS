@@ -9,7 +9,9 @@ dotenv.config()
 const app: Express = express()
 const port = process.env.PORT
 
-databaseService.connect().catch(console.dir)
+databaseService.connect().catch((error) => {
+  console.log(error)
+})
 
 app.use(express.json())
 app.use('/users', usersRouter)

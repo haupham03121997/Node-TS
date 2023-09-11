@@ -1,6 +1,7 @@
 import { RequestHandler, Request } from 'express'
 import { ParamsDictionary } from 'express-serve-static-core'
 import { checkSchema } from 'express-validator'
+import { USERS_MESSAGES } from '~/constants/messages'
 import { LoginRequestBody } from '~/models/requests/User.request'
 import { databaseService } from '~/services/config.service'
 import { usersService } from '~/services/user.service'
@@ -158,4 +159,25 @@ export const registerValidator = validate(
       }
     }
   })
+)
+
+export const accessValidator = validate(
+  checkSchema(
+    {
+      Authorization: {
+        notEmpty: {
+          errorMessage: USERS_MESSAGES.ACCESS_TOKEN_IS_REQUIRED
+        },
+        custom: {
+          options: (value, { req }) => {
+            if (value !== req.body.password) {
+              throw Error('Password confirmation does not match password')
+            }
+            return true
+          }
+        }
+      }
+    },
+    ['headers']
+  )
 )
