@@ -6,6 +6,7 @@ import { LoginRequestBody } from '~/models/requests/User.request'
 import { databaseService } from '~/services/config.service'
 import { usersService } from '~/services/user.service'
 import { sha256 } from '~/utils/crypto'
+import { verifyToken } from '~/utils/jwt'
 import { validate } from '~/utils/validation'
 
 export const loginValidator = validate(
@@ -161,7 +162,7 @@ export const registerValidator = validate(
   })
 )
 
-export const accessValidator = validate(
+export const accessTokenValidator = validate(
   checkSchema(
     {
       Authorization: {
@@ -169,11 +170,19 @@ export const accessValidator = validate(
           errorMessage: USERS_MESSAGES.ACCESS_TOKEN_IS_REQUIRED
         },
         custom: {
-          options: (value, { req }) => {
-            if (value !== req.body.password) {
-              throw Error('Password confirmation does not match password')
+          options: async (value: string, { req }) => {
+            try {
+              const access_token = value.replace('Bearer', '')
+              if (access_token === '') {
+                throw new Error(USERS_MESSAGES.ACCESS_TOKEN_IS_REQUIRED)
+              }
+              const decode_authorization = await verifyToken({ token: access_token })
+              console.log('decode_authorization', decode_authorization)
+              req.decode_authorization = decode_authorization
+              return true
+            } catch (error) {
+              throw new Error(error as any)
             }
-            return true
           }
         }
       }
