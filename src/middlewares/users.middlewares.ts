@@ -2,6 +2,7 @@ import { RequestHandler, Request } from 'express'
 import { ParamsDictionary } from 'express-serve-static-core'
 import { checkSchema } from 'express-validator'
 import { USERS_MESSAGES } from '~/constants/messages'
+import { ErrorWithStatus } from '~/models/Error'
 import { LoginRequestBody } from '~/models/requests/User.request'
 import { databaseService } from '~/services/config.service'
 import { usersService } from '~/services/user.service'
@@ -165,19 +166,21 @@ export const registerValidator = validate(
 export const accessTokenValidator = validate(
   checkSchema(
     {
-      Authorization: {
+      authorization: {
         notEmpty: {
           errorMessage: USERS_MESSAGES.ACCESS_TOKEN_IS_REQUIRED
         },
         custom: {
           options: async (value: string, { req }) => {
             try {
-              const access_token = value.replace('Bearer', '')
-              if (access_token === '') {
-                throw new Error(USERS_MESSAGES.ACCESS_TOKEN_IS_REQUIRED)
+              const [_, access_token] = value.split(' ')
+              console.log({ access_token })
+              if (!access_token) {
+                throw new ErrorWithStatus({ message: USERS_MESSAGES.ACCESS_TOKEN_IS_REQUIRED, status: 401 })
               }
-              const decode_authorization = await verifyToken({ token: access_token })
-              console.log('decode_authorization', decode_authorization)
+              const decode_authorization = await verifyToken({
+                token: access_token
+              })
               req.decode_authorization = decode_authorization
               return true
             } catch (error) {
@@ -188,5 +191,36 @@ export const accessTokenValidator = validate(
       }
     },
     ['headers']
+  )
+)
+
+export const refreshTokenValidator = validate(
+  checkSchema(
+    {
+      refresh_token: {
+        notEmpty: {
+          errorMessage: USERS_MESSAGES.ACCESS_TOKEN_IS_REQUIRED
+        },
+        custom: {
+          options: async (value, { req }) => {
+            try {
+              const [decode_refresh_token, refresh_token] = await Promise.all([
+                verifyToken({ token: value }),
+                databaseService.refreshToken.findOne({ token: value })
+              ])
+              if (refresh_token === null) {
+                throw new ErrorWithStatus({ message: USERS_MESSAGES.USED_REFRESH_TOKEN_OR_NOT_EXITS, status: 401 })
+              }
+
+              req.decode_refresh_token = decode_refresh_token
+            } catch {
+              throw new ErrorWithStatus({ message: USERS_MESSAGES.REFRESH_TOKEN_IS_INVALID, status: 401 })
+            }
+            return true
+          }
+        }
+      }
+    },
+    ['body']
   )
 )

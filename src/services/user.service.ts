@@ -8,6 +8,7 @@ import { ObjectId } from 'mongodb'
 import { RefreshToken } from '~/models/schemas/RefreshToken.scheme'
 
 import { config } from 'dotenv'
+import { USERS_MESSAGES } from '~/constants/messages'
 
 config()
 class UsersService {
@@ -50,6 +51,14 @@ class UsersService {
     const [access_token, refresh_token] = await this.signAccessAndRefreshToken(user_id)
     databaseService.refreshToken.insertOne(new RefreshToken({ id: new ObjectId(), user_id, token: refresh_token }))
     return { access_token, refresh_token }
+  }
+
+  async logoutService(refresh_token: string) {
+    const result = await databaseService.refreshToken.deleteOne({ token: refresh_token })
+    console.log({ result })
+    return {
+      message: USERS_MESSAGES.LOGOUT_SUCCESS
+    }
   }
 }
 

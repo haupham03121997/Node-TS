@@ -2,6 +2,7 @@ import { RequestHandler, Request, Response } from 'express'
 import { ParamsDictionary } from 'express-serve-static-core'
 import { ObjectId } from 'mongodb'
 import { RegisterRequestBody } from '~/models/requests/User.request'
+import { databaseService } from '~/services/config.service'
 import { usersService } from '~/services/user.service'
 import { wrapRequestHandler } from '~/utils/handlers'
 
@@ -22,3 +23,9 @@ export const registerController: RequestHandler = wrapRequestHandler(
     }
   }
 )
+
+export const logoutController: RequestHandler = wrapRequestHandler(async (req: Request, res: Response) => {
+  const { refresh_token } = req.body
+  const result = await usersService.logoutService(refresh_token)
+  return res.json(result)
+})
