@@ -1,6 +1,8 @@
 import { RequestHandler, Request } from 'express'
 import { ParamsDictionary } from 'express-serve-static-core'
 import { checkSchema } from 'express-validator'
+import { ObjectId } from 'mongodb'
+import { HttpStatus } from '~/constants/httpStatus'
 import { USERS_MESSAGES } from '~/constants/messages'
 import { ErrorWithStatus } from '~/models/Error'
 import { LoginRequestBody } from '~/models/requests/User.request'
@@ -34,7 +36,7 @@ export const loginValidator = validate(
           if (!user) {
             throw new Error('Email or password is incorrect')
           }
-          req.user = user
+          ;(req as Request).user = user
           return true
         }
       }
@@ -167,21 +169,20 @@ export const accessTokenValidator = validate(
   checkSchema(
     {
       authorization: {
-        notEmpty: {
-          errorMessage: USERS_MESSAGES.ACCESS_TOKEN_IS_REQUIRED
-        },
+        trim: true,
         custom: {
           options: async (value: string, { req }) => {
+            const access_token = (value || '').split(' ')[1]
+            console.log({ access_token })
+            if (!access_token) {
+              throw new ErrorWithStatus({ message: USERS_MESSAGES.ACCESS_TOKEN_IS_REQUIRED, status: 401 })
+            }
             try {
-              const [_, access_token] = value.split(' ')
-              console.log({ access_token })
-              if (!access_token) {
-                throw new ErrorWithStatus({ message: USERS_MESSAGES.ACCESS_TOKEN_IS_REQUIRED, status: 401 })
-              }
               const decode_authorization = await verifyToken({
-                token: access_token
+                token: access_token,
+                secretOrPublicKey: process.env.JWT_SECRET_ACCESS_TOKEN as string
               })
-              req.decode_authorization = decode_authorization
+              ;(req as Request).decode_authorization = decode_authorization
               return true
             } catch (error) {
               throw new Error(error as any)
@@ -198,23 +199,137 @@ export const refreshTokenValidator = validate(
   checkSchema(
     {
       refresh_token: {
-        notEmpty: {
-          errorMessage: USERS_MESSAGES.ACCESS_TOKEN_IS_REQUIRED
-        },
+        trim: true,
         custom: {
           options: async (value, { req }) => {
+            if (!value) {
+              throw new ErrorWithStatus({
+                status: 401,
+                message: USERS_MESSAGES.ACCESS_TOKEN_IS_REQUIRED
+              })
+            }
             try {
               const [decode_refresh_token, refresh_token] = await Promise.all([
-                verifyToken({ token: value }),
+                verifyToken({ token: value, secretOrPublicKey: process.env.JWT_SECRET_REFRESH_TOKEN as string }),
                 databaseService.refreshToken.findOne({ token: value })
               ])
+
               if (refresh_token === null) {
                 throw new ErrorWithStatus({ message: USERS_MESSAGES.USED_REFRESH_TOKEN_OR_NOT_EXITS, status: 401 })
               }
 
-              req.decode_refresh_token = decode_refresh_token
+              ;(req as Request).decode_refresh_token = decode_refresh_token
             } catch {
               throw new ErrorWithStatus({ message: USERS_MESSAGES.REFRESH_TOKEN_IS_INVALID, status: 401 })
+            }
+            return true
+          }
+        }
+      }
+    },
+    ['body']
+  )
+)
+
+export const emailTokenValidator = validate(
+  checkSchema(
+    {
+      email_verify_token: {
+        trim: true,
+        custom: {
+          options: async (value, { req }) => {
+            if (!value) {
+              throw new ErrorWithStatus({
+                status: 401,
+                message: USERS_MESSAGES.ACCESS_TOKEN_IS_REQUIRED
+              })
+            }
+            try {
+              const decode_email_verify_token = await verifyToken({
+                token: value,
+                secretOrPublicKey: process.env.JWT_SECRET_VERIFY_EMAIL_TOKEN as string
+              })
+              ;(req as Request).decode_email_verify_token = decode_email_verify_token
+            } catch {
+              throw new ErrorWithStatus({ message: USERS_MESSAGES.EMAIL_VERIFY_TOKEN_IS_INVALID, status: 401 })
+            }
+            return true
+          }
+        }
+      }
+    },
+    ['body']
+  )
+)
+
+export const forgotPasswordValidator = validate(
+  checkSchema(
+    {
+      email: {
+        trim: true,
+        isEmail: {
+          errorMessage: USERS_MESSAGES.EMAIL_IS_REQUIRED
+        },
+        custom: {
+          options: async (value, { req }) => {
+            const user = await databaseService.users.findOne({ email: value })
+            console.log({ user })
+            if (!user) {
+              throw new Error(USERS_MESSAGES.USER_NOT_FOUND)
+            }
+            req.user = user
+            return true
+          }
+        }
+      }
+    },
+    ['body']
+  )
+)
+
+export const verifyForgotPasswordTokenValidator = validate(
+  checkSchema(
+    {
+      forgot_password_token: {
+        trim: true,
+        custom: {
+          options: async (value, { req }) => {
+            if (!value) {
+              throw new ErrorWithStatus({
+                status: 401,
+                message: USERS_MESSAGES.FORGOT_PASSWORD_IS_REQUIRED
+              })
+            }
+            try {
+              const decode_forgot_password_token = await verifyToken({
+                token: value,
+                secretOrPublicKey: process.env.JWT_SECRET_FORGOT_PASSWORD_TOKEN as string
+              })
+              const { user_id } = decode_forgot_password_token
+              const user = await databaseService.users.findOne({ _id: new ObjectId(user_id) })
+              if (user === null) {
+                throw new ErrorWithStatus({
+                  message: USERS_MESSAGES.USED_REFRESH_TOKEN_OR_NOT_EXITS,
+                  status: HttpStatus.UNAUTHORIZED
+                })
+              }
+              if (user.forgot_password_token === null) {
+                throw new ErrorWithStatus({
+                  message: USERS_MESSAGES.INVALID_FORGOT_PASSWORD_TOKEN,
+                  status: HttpStatus.UNAUTHORIZED
+                })
+              }
+              console.log('forgot-password', user.forgot_password_token)
+              // const [_, refresh_token] = await Promise.all([
+              //   verifyToken({
+              //     token: value,
+              //     secretOrPublicKey: process.env.JWT_SECRET_FORGOT_PASSWORD_TOKEN as string
+              //   }),
+              //   databaseService.users.findOne({ forgot_password_token: decode_forgot_password_token })
+              // ])
+              // ;(req as Request).decode_forgot_password_verify_token = decode_forgot_password_verify_token
+            } catch {
+              throw new ErrorWithStatus({ message: USERS_MESSAGES.EMAIL_VERIFY_TOKEN_IS_INVALID, status: 401 })
             }
             return true
           }
