@@ -43,7 +43,6 @@ export const oauthController: RequestHandler = wrapRequestHandler(
 
     const result = await usersService.oauth(code as string)
     const urlRedirect = `${process.env.CLIENT_REDIRECT_CALLBACK}?access_token=${result.access_token}&refresh_token=${result.refresh_token}&new_user=${result.newUser}`
-    console.log('result', urlRedirect)
     return res.redirect(urlRedirect)
   }
 )
