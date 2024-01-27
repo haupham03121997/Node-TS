@@ -3,6 +3,9 @@ import { config } from 'dotenv'
 import User from '~/models/schemas/User.schema'
 import { RefreshToken } from '~/models/schemas/RefreshToken.scheme'
 import { Follower } from '~/models/schemas/Follow.schema'
+import Tweet from '~/models/schemas/Tweet.schema'
+import Hashtag from '~/models/schemas/Hashtag.schema'
+import Bookmark from '~/models/schemas/Bookmark.schema'
 config()
 
 const uri = `mongodb+srv://${process.env.DATABASE_USERNAME}:${process.env.DATABASE_PASSWORD}@twitter.jjxicxg.mongodb.net/?retryWrites=true&w=majority`
@@ -32,6 +35,14 @@ class DatabaseService {
     }
   }
 
+  get tweets(): Collection<Tweet> {
+    return this.db.collection(process.env.DATABASE_TWEETS_COLLECTION as string)
+  }
+
+  get hashtags(): Collection<Hashtag> {
+    return this.db.collection(process.env.DATABASE_HASHTAGS_COLLECTION as string)
+  }
+
   get users(): Collection<User> {
     return this.db.collection(process.env.DATABASE_USERS_COLLECTION as string)
   }
@@ -41,6 +52,10 @@ class DatabaseService {
 
   get followers(): Collection<Follower> {
     return this.db.collection(process.env.DATABASE_FOLLOWERS_COLLECTION as string)
+  }
+
+  get bookmarks(): Collection<Bookmark> {
+    return this.db.collection(process.env.DATABASE_BOOKMARKS_COLLECTION as string)
   }
 }
 
