@@ -10,6 +10,13 @@ export const createBookmarkController: RequestHandler = async (
 ) => {
   const { user_id } = req.decode_authorization as TokenPayload
   const result = await bookmarksService.bookmarkTweet(user_id || '', req.body.tweet_id)
-  console.log('createBookmarkController', result)
-  return res.status(200).send({ message: 'Tạo thành công', result })
+  return res.status(200).send({ message: 'Lưu thành công', result })
+}
+
+export const unBookmarkController: RequestHandler = async (req: Request, res: Response) => {
+  const { user_id } = req.decode_authorization as TokenPayload
+  const result = await bookmarksService.unBookmarkTweet(user_id || '', req.params.tweet_id)
+  return res
+    .status(result ? 200 : 404)
+    .send({ message: result ? 'Huỷ lưu thành công' : 'Không tìm thấy dữ liệu', result })
 }

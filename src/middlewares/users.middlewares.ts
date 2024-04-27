@@ -1,7 +1,5 @@
-import { RequestHandler, Request, NextFunction } from 'express'
-import { ParamsDictionary } from 'express-serve-static-core'
+import { Request, NextFunction, Response } from 'express'
 import { ParamSchema, checkSchema } from 'express-validator'
-import { JwtPayload } from 'jsonwebtoken'
 import { ObjectId } from 'mongodb'
 import { UserVerifyStatus } from '~/constants/enums'
 import { HttpStatus } from '~/constants/httpStatus'
@@ -551,7 +549,6 @@ export const changePasswordValidator = validate(
           console.log('run run run')
           const { user_id } = (req as Request).decode_authorization as TokenPayload
           const user = await databaseService.users.findOne({ _id: new ObjectId(user_id) })
-          console.log('user', user)
           if (user === null) {
             throw new ErrorWithStatus({
               status: HttpStatus.NOT_FOUND,
@@ -573,3 +570,12 @@ export const changePasswordValidator = validate(
     confirm_password: confirmPasswordSchema
   })
 )
+
+export const isUserLoggedInValidator = (middleware: (req: Request, res: Response, next: NextFunction) => void) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (req.headers.authorization) {
+      return middleware(req, res, next)
+    }
+    next()
+  }
+}

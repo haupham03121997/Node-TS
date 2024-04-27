@@ -13,3 +13,8 @@ export const createTweetController: RequestHandler = async (
 
   return res.status(200).send({ message: 'Tạo thành công', result })
 }
+
+export const getTweetController: RequestHandler = async (req: Request, res: Response) => {
+  const result = await tweetsService.inCreateView(req.params.tweet_id as string, req.decode_authorization?.user_id)
+  return res.status(200).send({ message: 'Lấy tweet thành công', result: { ...req.tweet, ...result } })
+}
